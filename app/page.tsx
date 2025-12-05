@@ -51,8 +51,8 @@ const DEATH_THRESHOLD = 5.0;
 const PANIC_THRESHOLD = 6.0;   
 const HUBRIS_THRESHOLD = 8.5;  
 
-const GEN_MODEL = "gemini-1.5-flash"; 
-const OPTIMIZER_MODEL = "gemini-1.5-pro"; 
+const GEN_MODEL = "gemini-2.5-pro"; 
+const OPTIMIZER_MODEL = "gemini-3-pro-preview"; 
 
 // --- HELPER HOOK FOR LOCAL STORAGE (TS VERSION) ---
 function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -182,8 +182,20 @@ export default function Home() {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${OPTIMIZER_MODEL}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: metaPrompt }] }] })
-      });
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: metaPrompt }] }],
+          generationConfig: {
+            temperature: currentScore > 8 ? 0.9 : 0.5,
+            maxOutputTokens: 2100,
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        })
+    });
       
       const data = await response.json();
       const newInstruction = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -293,8 +305,15 @@ export default function Home() {
           systemInstruction: { parts: [{ text: systemInstruction }] },
           generationConfig: {
             temperature: agentScore > 8 ? 0.9 : 0.5, 
-            maxOutputTokens: 300,
-          }
+            maxOutputTokens: 2100,
+          },
+          // Added BLOCK_NONE safety settings
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
         })
       });
 
